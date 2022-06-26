@@ -44,20 +44,60 @@ INTENTS = {
         "examples": ['Привет', "Хеллоу", "Хай"], 
         "response": ["Здрасьте", "Йоу"],
     },
+   "how-are-you": {         
+        "examples": ['Как дела', "Чем занят", "Че по чем"], 
+        "response": ["Вроде ничего", "На чиле, на расслабоне"],
+    },
+    "unknown": {
+        "examples": ['не знаю'],
+        "response": ['не понимаю'],
+    },
+    "stop": {
+        "examples": ["выход", "stop", "exit"],
+        "response": ["понял, выхожу", "очень жаль, пока!", "до свидания!"],
+    }
 #    "time": {
 #        "examples": [],
 #        "response": # ответ на запрос времени - какая-то уже функция, просто фик.вариант не подойдет
 #    }
-}
+} # можно поместить в файл или в БД
 
-# text = filter_text(input())
+def get_intent(text): # определить намерение по тексту : Чем занят => how-are-you
+    # проверить все существующие интенты - один из них может иметь example похожий на text
+    for intent_name in INTENTS.keys():
+        examples = INTENTS[intent_name]["examples"]
+        for example in examples:
+            if text_match(text, example):
+                return intent_name
+    return "unknown"
+
+def get_response(intent): # вернуть по интенту один из ответов : hello => Йоу
+    return random.choice(INTENTS[intent]["response"])
+
+def bot(text): # найти намерение по тексту
+    intent = get_intent(text)
+    if not intent:
+        print("ничего не понял")
+    else: # если намерение найдено
+        print(get_response(intent))
+
+# bot("чем занят")
+
+# непрерывный цикл по вводу с ботом
 text = ""
-if text in ['hi', "hello"]:
-    print(random.choice(["hello", "heyo"]))
-elif text in ["buy", "poki"]:
-    print(random.choice(["wait for our cita", "bao"]))
-else:
-    print("did not get it")
+while text != "stop":
+    text = input()
+    bot(text)
 
+# первоначальная фильтрация
+# text = filter_text(input())
+# text = ""
+#if text in ['hi', "hello"]:
+#    print(random.choice(["hello", "heyo"]))
+#elif text in ["buy", "poki"]:
+#    print(random.choice(["wait for our cita", "bao"]))
+#else:
+#    print("did not get it")
 
+# пример определения похожести слов
 # print(nltk.edit_distance("превет", "привет!"))
