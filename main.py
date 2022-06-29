@@ -1,8 +1,8 @@
-from codecs import escape_encode
-from operator import truediv
+#from codecs import escape_encode
+#from operator import truediv
 import random
 import re
-from telnetlib import BINARY
+#from telnetlib import BINARY
 import nltk
 import json
 
@@ -16,21 +16,24 @@ def text_match(user_text, example):
     # теперь еще нужно в конце спец.символы убрать (Привет == Привет!!!)
     # можно сделать с помощью регулярных выражений - удалить в строке все сзнаки припинания
 
-    if user_text.find(example) != -1: # нашли подстроку : Привет, как дела == Привет
-        return True
+#    if user_text.find(example) != -1: # нашли подстроку : Привет, как дела == Привет
+#        return True
 
-    if example.find(user_text) != -1: # 
-        return True
-
+#    if example.find(user_text) != -1: # 
+#        return True
+    example_len = len(example)
+    
+    if example_len ==0 or len(user_text) ==0:
+        return False
+    
     # опечатки : Превет == привет (метод levenstein = nltk library) = расстояние левенштейна - похожесть языков
     distance = nltk.edit_distance(user_text, example)
     # она не отработает на "привет, как дела?" != "привет", хотя смысл как бы тот же самый
 
-    example_len = len(example)
     difference = distance / example_len # на сколько в % отличаются фразы
 
-    # 40% - норм (пока так считаем)
-    return difference < 0.4
+    # 20% - сменили с 40 на 20 - типа чтобы было побольше расстояние между строками
+    return difference < 0.2
 
 # фильтрация = очистка текста
 def filter_text(text):
@@ -46,19 +49,19 @@ def filter_text(text):
 INTENTS = {
     "hello": {          # зачем пользователь написал слово = угадать намерение
         "examples": ['Привет', "Хеллоу", "Хай"], 
-        "response": ["Здрасьте", "Йоу"],
+        "responses": ["Здрасьте", "Йоу"],
     },
    "how-are-you": {         
         "examples": ['Как дела', "Чем занят", "Че по чем"], 
-        "response": ["Вроде ничего", "На чиле, на расслабоне"],
+        "responses": ["Вроде ничего", "На чиле, на расслабоне"],
     },
     "unknown": {
         "examples": ['не знаю'],
-        "response": ['не понимаю'],
+        "responses": ['не понимаю'],
     },
     "stop": {
         "examples": ["выход", "stop", "exit"],
-        "response": ["понял, выхожу", "очень жаль, пока!", "до свидания!"],
+        "responses": ["понял, выхожу", "очень жаль, пока!", "до свидания!"],
     }
 #    "time": {
 #        "examples": [],
@@ -76,19 +79,7 @@ def get_intent(text): # определить намерение по текст�
     return "unknown"
 
 def get_response(intent): # вернуть по интенту один из ответов : hello => Йоу
-    return random.choice(INTENTS[intent]["response"])
-
-def bot(text): # найти намерение по тексту
-    intent = get_intent(text)
-    if not intent:
-        print("ничего не понял")
-    else: # если намерение найдено
-        print(get_response(intent))
-        if intent == "stop" :
-            return 1
-        else:
-            return 0
-
+    return random.choice(INTENTS[intent]["responses"])
 
 with open("big_bot_config.json","r") as config_file:
     BIG_INTENTS = json.load(config_file)
@@ -109,9 +100,19 @@ for name, intent in INTENTS_JSON.items():
         y.append(name)
     for phrase in intent['responses']:
         x.append(phrase)
-        y.append(phrase)
+        y.append(name)
     
 # print(len(x),"Y :",len(y))
+
+def get_response_ml(intent): # вернуть по интенту один из ответов : hello => Йоу
+    # intent = filter_text(intent)
+    response = random.choice(INTENTS_JSON[intent]["responses"])
+    if response:
+        return response
+    else:
+        return 0
+
+
 
 # векторизация текстов - превратить текст в набор чисел (вектор) - можно понять, что написано в тексте = sklearn library
 import sklearn
@@ -153,7 +154,9 @@ vectorizer.fit(x) # обучением векторайзер
 # используем классификатор на основе нейронных сетей
 #from sklearn.neural_network import MLPClassifier
 #mlp_model = MLPClassifier() # создаем модель
+
 vecX = vectorizer.transform(x) # преобразуем тексты в вектора
+
 #mlp_model.fit(vecX,y) # обучаем модель
 
 # качество на тренировочной выборе = accuracy модели / больше = лучше
@@ -161,25 +164,48 @@ vecX = vectorizer.transform(x) # преобразуем тексты в вект
 
 # модель Random Forest
 from sklearn.ensemble import RandomForestClassifier
-rf_model = RandomForestClassifier()
+rf_model = RandomForestClassifier(15)
 rf_model.fit(vecX, y)
-rf_model.score(vecX, y)
+print(rf_model.score(vecX, y))
 
 MODEL = rf_model
 
 def get_intent_ml(text):
     vec_text = vectorizer.transform([text])
+    # print (text, " vect = ", vec_text)
     intent = MODEL.predict(vec_text)[0]
+    return intent
+
+
+def bot(text): # найти намерение по тексту
+    intent = get_intent(text)
+    print("get intent = ", intent)
+
+    if not intent or intent == "unknown":
+        intent = get_intent_ml(text)
+        print("get intent_ml = ", intent)
+        if not intent:
+            print(random.choice(BIG_INTENTS['failure_phrases']))
+        else: # если намерение найдено
+            print(get_response_ml(intent))
+    else:
+        print(get_response(intent))
+
+    if intent == "stop" :
+        return 1
+    else:
+        return 0
 
 
 # bot("чем занят")
 
 # непрерывный цикл по вводу с ботом
-# text = ""
-#while True:
-#    text = input()
-#    if bot(text):
-#        break
+text = ""
+while True:
+    print('> ', end='')
+    text = filter_text(input())
+    if bot(text):
+        break
 
 # первоначальная фильтрация
 # text = filter_text(input())
