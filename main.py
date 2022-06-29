@@ -146,22 +146,40 @@ vectorizer.fit(x) # обучением векторайзер
 # dense = [0,0,0,0,0,00,0,0, 2, 0,0,0,0,0,00,0,0,0,6, 0,0,0,1]
 # sparse = [ ... 2, ...6,..1]
 
- for i in vectorizer.transform(["как дела чем занят"]).toarray()[0]:
-    if i!= 0:
-        print(i,end=',')
-
+# for i in vectorizer.transform(["как дела чем занят"]).toarray()[0]:
+#    if i!= 0:
+#        print(i,end=',')
 
 # используем классификатор на основе нейронных сетей
+#from sklearn.neural_network import MLPClassifier
+#mlp_model = MLPClassifier() # создаем модель
+vecX = vectorizer.transform(x) # преобразуем тексты в вектора
+#mlp_model.fit(vecX,y) # обучаем модель
+
+# качество на тренировочной выборе = accuracy модели / больше = лучше
+#mlp_model.score(vecX, y)
+
+# модель Random Forest
+from sklearn.ensemble import RandomForestClassifier
+rf_model = RandomForestClassifier()
+rf_model.fit(vecX, y)
+rf_model.score(vecX, y)
+
+MODEL = rf_model
+
+def get_intent_ml(text):
+    vec_text = vectorizer.transform([text])
+    intent = MODEL.predict(vec_text)[0]
 
 
 # bot("чем занят")
 
 # непрерывный цикл по вводу с ботом
-text = ""
-while True:
-    text = input()
-    if bot(text):
-        break
+# text = ""
+#while True:
+#    text = input()
+#    if bot(text):
+#        break
 
 # первоначальная фильтрация
 # text = filter_text(input())
