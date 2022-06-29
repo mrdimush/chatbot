@@ -2,7 +2,11 @@ from codecs import escape_encode
 from operator import truediv
 import random
 import re
+from telnetlib import BINARY
 import nltk
+import json
+
+# https://colab.research.google.com/drive/1ZlF2Q9_jwE_KgMDcU3VlhoHfsTykoIvT?usp=sharing#scrollTo=hSSID1qhTRst - skillbox demo
 
 # сравнивает строки
 def text_match(user_text, example):
@@ -80,14 +84,84 @@ def bot(text): # найти намерение по тексту
         print("ничего не понял")
     else: # если намерение найдено
         print(get_response(intent))
+        if intent == "stop" :
+            return 1
+        else:
+            return 0
+
+
+with open("big_bot_config.json","r") as config_file:
+    BIG_INTENTS = json.load(config_file)
+# print(BIG_INTENTS.keys())
+# задача: научить модель опрелять интент по тексту - это называется классификацией текстов
+# строчка на вход - модель предсказывает класс текста (интент фразы)
+# 1) входные данные Х
+# 2) выходные данные - У
+# модель учится на наших примерах и может предсказывать интенты по фразе
+
+INTENTS_JSON = BIG_INTENTS['intents']
+x = [] # фразы 
+y = [] # интенты
+for name, intent in INTENTS_JSON.items():
+    # print (name)
+    for phrase in intent['examples']: # смотрим все фразы для интента и записываем
+        x.append(phrase)
+        y.append(name)
+    for phrase in intent['responses']:
+        x.append(phrase)
+        y.append(phrase)
+    
+# print(len(x),"Y :",len(y))
+
+# векторизация текстов - превратить текст в набор чисел (вектор) - можно понять, что написано в тексте = sklearn library
+import sklearn
+
+# сначала просто проверка, как работает библиотека и как иницициализируется простейший векторайзер
+
+# Задача Векторизации текста
+#"текст" => [1,2,3]
+#Большой набор текстов
+#Векторайзер обучается
+#Векторайзер готов работать с новыми текстами
+#Пример
+#
+#1. Набор текстов = {
+#  "мама мыла раму", 
+#  "мыла раму мама",
+#  "раму мама мыла",
+#}
+#2. Обучение
+#мама = 1, мыла = 2, раму = 3
+#  "мама мыла раму" = [1,2,3]
+#  "мыла раму мама" = [2,3,1]
+#  "раму мама мыла" = [3,1,2]
+#3. Векторизация
+#"мама мама мама" = [1,1,1]
+# "как мама мыла раму" = [0,1,2,3]
+
+from sklearn.feature_extraction.text import CountVectorizer
+vectorizer = CountVectorizer()
+vectorizer.fit(x) # обучением векторайзер
+
+# dense = [0,0,0,0,0,00,0,0, 2, 0,0,0,0,0,00,0,0,0,6, 0,0,0,1]
+# sparse = [ ... 2, ...6,..1]
+
+ for i in vectorizer.transform(["как дела чем занят"]).toarray()[0]:
+    if i!= 0:
+        print(i,end=',')
+
+
+# используем классификатор на основе нейронных сетей
+
 
 # bot("чем занят")
 
 # непрерывный цикл по вводу с ботом
 text = ""
-while text != "stop":
+while True:
     text = input()
-    bot(text)
+    if bot(text):
+        break
 
 # первоначальная фильтрация
 # text = filter_text(input())
