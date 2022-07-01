@@ -6,6 +6,26 @@ import re
 import nltk
 import json
 
+from telegram import Update # апдейт - это информация полученная с сервера (с сервера в бота попадает информация - новые сообщения, новые контакты). Апдейт - это то, что изменилось с прошлого раза
+from telegram.ext import ApplicationBuilder # создавать и настраивать приложение (телеграм бота)
+from telegram.ext import MessageHandler # обработчик = создать реакцию (функцию) на действие
+from telegram.ext.filters import Text as FilterOnlyTextMessages # назовем осмысленно то, что импортируем из внешней библиотеки
+
+# функция message handler - чтобы вызывать при каждом сообщении боту
+async def reply (update: Update, context): # асинхронная функция
+    # ToDo: убрать заглушку, подключить бота
+    update.message.reply_text("Отстань") # ответ пользователю
+
+TOKEN = "" # @BotFather
+TG_app = ApplicationBuilder().token(TOKEN).build()
+
+# создаем обработчик текстовых сообщений и добавляем обработчик в приложение
+TG_handler = MessageHandler(FilterOnlyTextMessages, reply)
+TG_app.add_handler(TG_handler)
+TG_app.run_polling() # запускаем приложение
+
+# если появляется ошибка, что nested loop is already running, то может быть решена библиотекой nest_asyncio (import + nest_asyncio.apply())
+
 # https://colab.research.google.com/drive/1ZlF2Q9_jwE_KgMDcU3VlhoHfsTykoIvT?usp=sharing#scrollTo=hSSID1qhTRst - skillbox demo
 
 # сравнивает строки
