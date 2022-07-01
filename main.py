@@ -1,30 +1,11 @@
 #from codecs import escape_encode
 #from operator import truediv
+from email.mime import image
 import random
 import re
 #from telnetlib import BINARY
 import nltk
 import json
-
-from telegram import Update # апдейт - это информация полученная с сервера (с сервера в бота попадает информация - новые сообщения, новые контакты). Апдейт - это то, что изменилось с прошлого раза
-from telegram.ext import ApplicationBuilder # создавать и настраивать приложение (телеграм бота)
-from telegram.ext import MessageHandler # обработчик = создать реакцию (функцию) на действие
-from telegram.ext.filters import Text as FilterOnlyTextMessages # назовем осмысленно то, что импортируем из внешней библиотеки
-
-# функция message handler - чтобы вызывать при каждом сообщении боту
-async def reply (update: Update, context): # асинхронная функция
-    # ToDo: убрать заглушку, подключить бота
-    update.message.reply_text("Отстань") # ответ пользователю
-
-TOKEN = "" # @BotFather
-TG_app = ApplicationBuilder().token(TOKEN).build()
-
-# создаем обработчик текстовых сообщений и добавляем обработчик в приложение
-TG_handler = MessageHandler(FilterOnlyTextMessages, reply)
-TG_app.add_handler(TG_handler)
-TG_app.run_polling() # запускаем приложение
-
-# если появляется ошибка, что nested loop is already running, то может быть решена библиотекой nest_asyncio (import + nest_asyncio.apply())
 
 # https://colab.research.google.com/drive/1ZlF2Q9_jwE_KgMDcU3VlhoHfsTykoIvT?usp=sharing#scrollTo=hSSID1qhTRst - skillbox demo
 
@@ -197,21 +178,32 @@ def get_intent_ml(text):
     return intent
 
 
-def bot(text): # найти намерение по тексту
+def bot(text, need_print : bool): # найти намерение по тексту
     intent = get_intent(text)
-    print("get intent = ", intent)
+    if need_print:
+        print("get intent = ", intent)
 
     if not intent or intent == "unknown":
         intent = get_intent_ml(text)
-        print("get intent_ml = ", intent)
+        if need_print:
+            print("get intent_ml = ", intent)
         if not intent:
-            print(random.choice(BIG_INTENTS['failure_phrases']))
+            if need_print:
+                print(random.choice(BIG_INTENTS['failure_phrases']))
+            else:
+                return random.choice(BIG_INTENTS['failure_phrases'])
         else: # если намерение найдено
-            print(get_response_ml(intent))
+            if need_print:
+                print(get_response_ml(intent))
+            else:
+                return get_response_ml(intent)
     else:
-        print(get_response(intent))
+        if need_print:
+            print(get_response(intent))
+        else:
+            return get_response(intent)
 
-    if intent == "stop" :
+    if intent == "stop" and need_print:
         return 1
     else:
         return 0
@@ -219,13 +211,13 @@ def bot(text): # найти намерение по тексту
 
 # bot("чем занят")
 
-# непрерывный цикл по вводу с ботом
-text = ""
-while True:
-    print('> ', end='')
-    text = filter_text(input())
-    if bot(text):
-        break
+# непрерывный цикл по вводу с ботом - но в этой ветке этого не надо - мы подключаемся к телеге
+#text = ""
+#while True:
+#    print('> ', end='')
+#    text = filter_text(input())
+#    if bot(text):
+#        break
 
 # первоначальная фильтрация
 # text = filter_text(input())
@@ -239,3 +231,33 @@ while True:
 
 # пример определения похожести слов
 # print(nltk.edit_distance("превет", "привет!"))
+
+from telegram import Update # апдейт - это информация полученная с сервера (с сервера в бота попадает информация - новые сообщения, новые контакты). Апдейт - это то, что изменилось с прошлого раза
+from telegram.ext import ApplicationBuilder # создавать и настраивать приложение (телеграм бота)
+from telegram.ext import MessageHandler # обработчик = создать реакцию (функцию) на действие
+# from telegram.ext.filters import Text as FilterOnlyTextMessages # назовем осмысленно то, что импортируем из внешней библиотеки
+from telegram.ext import filters
+
+DEBUG = False
+
+# функция message handler - чтобы вызывать при каждом сообщении боту
+async def reply (update: Update, context) -> None: # асинхронная функция, возвращающая None
+    question = update.message.text
+    # ToDo: убрать заглушку, подключить бота
+#    reply = "Отстань"     
+    reply = bot(question, False)
+    if DEBUG:
+        print(f"> {question}")
+        print(f"< {reply}")
+    await update.message.reply_text(reply) # ответ пользователю
+
+TOKEN = "5594598923:AAFZit5M1sPDWUvDH1WbPpRsZp8wsdEOjNY" # @BotFather
+TG_app = ApplicationBuilder().token(TOKEN).build()
+
+# создаем обработчик текстовых сообщений и добавляем обработчик в приложение
+# TG_handler = MessageHandler(FilterOnlyTextMessages, reply)
+TG_handler = MessageHandler(filters.Text(),reply)
+TG_app.add_handler(TG_handler)
+TG_app.run_polling() # запускаем приложение
+
+# если появляется ошибка, что nested loop is already running, то может быть решена библиотекой nest_asyncio (import + nest_asyncio.apply())
